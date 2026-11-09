@@ -14,6 +14,9 @@ export default function AnalysisReport({
         <div>
           <p className="eyebrow">ANALYSIS REPORT</p>
           <h2>{jobRole} match results</h2>
+          <p className="candidate-identity">
+            {analysis.candidateName} <span>·</span> {analysis.candidateEmail}
+          </p>
           <p className="muted">Based on the uploaded resume and job description.</p>
         </div>
         <MatchScore score={analysis.matchScore} />

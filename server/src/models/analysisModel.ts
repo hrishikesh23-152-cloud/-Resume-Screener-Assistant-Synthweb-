@@ -5,6 +5,8 @@ export const MAX_RESUME_LENGTH = 30_000;
 
 export const analysisRequestSchema = z
   .object({
+    candidateName: z.string().trim().min(2, "Candidate name is required").max(120),
+    candidateEmail: z.string().trim().email("Enter a valid candidate email").max(254).transform((email) => email.toLowerCase()),
     jobRole: z.string().trim().min(2, "Job role is required").max(120),
     jobDescription: z
       .string()
@@ -13,6 +15,28 @@ export const analysisRequestSchema = z
       .max(MAX_JOB_DESCRIPTION_LENGTH),
   })
   .strict();
+
+export const analysisQuerySchema = z
+  .object({
+    candidateName: z.string().trim().min(1).max(120).optional(),
+    candidateEmail: z.string().trim().email().max(254).transform((email) => email.toLowerCase()).optional(),
+    jobRole: z.string().trim().min(1).max(120).optional(),
+    minScore: z.coerce.number().min(0).max(100).optional(),
+    maxScore: z.coerce.number().min(0).max(100).optional(),
+    from: z.string().date().optional(),
+    to: z.string().date().optional(),
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(10),
+  })
+  .strict()
+  .refine(
+    ({ minScore, maxScore, from, to }) =>
+      (minScore === undefined || maxScore === undefined || minScore <= maxScore) &&
+      (from === undefined || to === undefined || from <= to),
+    { message: "Check that minimum values do not exceed maximum values", path: ["minScore"] },
+  );
+
+export const analysisIdSchema = z.object({ id: z.string().regex(/^[a-f\d]{24}$/i, "Invalid analysis ID") });
 
 export const analysisResponseSchema = z
   .object({
@@ -25,3 +49,4 @@ export const analysisResponseSchema = z
 
 export type AnalysisRequest = z.infer<typeof analysisRequestSchema>;
 export type AnalysisResponse = z.infer<typeof analysisResponseSchema>;
+export type AnalysisQuery = z.infer<typeof analysisQuerySchema>;

@@ -1,20 +1,67 @@
-import { useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
+import { useEffect, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import AnalysisReport from "../components/AnalysisReport.js";
 import { analysisFormSchema } from "../schemas/analysisForm.js";
-import { analyzeResume, getErrorMessage, type AnalysisResult } from "../services/api.js";
+import {
+  analyzeResume,
+  getAnalysisHistory,
+  getErrorMessage,
+  type AnalysisResult,
+  type AnalysisUsage,
+} from "../services/api.js";
 
 const emptyForm = {
+  candidateName: "",
+  candidateEmail: "",
   jobRole: "",
   jobDescription: "",
 };
+
+const emptyFilters = { candidateName: "", candidateEmail: "", jobRole: "", minScore: "", maxScore: "", from: "", to: "" };
 
 export default function DashboardPage() {
   const [form, setForm] = useState(emptyForm);
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
+  const [usage, setUsage] = useState<AnalysisUsage | null>(null);
+  const [filters, setFilters] = useState(emptyFilters);
+  const [history, setHistory] = useState<AnalysisResult[]>([]);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyPages, setHistoryPages] = useState(1);
+  const [historyTotal, setHistoryTotal] = useState(0);
+  const [historyError, setHistoryError] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
+  useEffect(() => {
+    void loadHistory(1);
+  }, []);
+
+  async function loadHistory(page: number, search = filters) {
+    setHistoryLoading(true);
+    setHistoryError("");
+    try {
+      const result = await getAnalysisHistory({
+        candidateName: search.candidateName.trim() || undefined,
+        candidateEmail: search.candidateEmail.trim() || undefined,
+        jobRole: search.jobRole.trim() || undefined,
+        minScore: search.minScore || undefined,
+        maxScore: search.maxScore || undefined,
+        from: search.from || undefined,
+        to: search.to || undefined,
+        page,
+      });
+      setHistory(result.items);
+      setHistoryPage(result.page);
+      setHistoryPages(result.pages);
+      setHistoryTotal(result.total);
+    } catch (requestError) {
+      setHistoryError(getErrorMessage(requestError));
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -22,6 +69,7 @@ export default function DashboardPage() {
 
     setError("");
     setAnalysis(null);
+    setUsage(null);
     const parsed = analysisFormSchema.safeParse({ ...form, resumeFile });
     if (!parsed.success) {
       setFieldErrors(
@@ -34,7 +82,9 @@ export default function DashboardPage() {
     setLoading(true);
     try {
       const result = await analyzeResume(parsed.data);
-      setAnalysis(result);
+      setAnalysis(result.analysis);
+      setUsage(result.usage);
+      void loadHistory(1);
     } catch (requestError) {
       setError(getErrorMessage(requestError));
     } finally {
@@ -105,6 +155,25 @@ export default function DashboardPage() {
             <span className="private-badge">PDF only · 300 KB max</span>
           </div>
           <form onSubmit={onSubmit} noValidate>
+            <Field label="Candidate name" error={fieldErrors.candidateName}>
+              <input
+                value={form.candidateName}
+                onChange={(event) => setForm((current) => ({ ...current, candidateName: event.target.value }))}
+                placeholder="e.g. Alex Morgan"
+                autoComplete="name"
+                aria-invalid={Boolean(fieldErrors.candidateName)}
+              />
+            </Field>
+            <Field label="Candidate email" error={fieldErrors.candidateEmail}>
+              <input
+                type="email"
+                value={form.candidateEmail}
+                onChange={(event) => setForm((current) => ({ ...current, candidateEmail: event.target.value }))}
+                placeholder="alex@example.com"
+                autoComplete="email"
+                aria-invalid={Boolean(fieldErrors.candidateEmail)}
+              />
+            </Field>
             <Field label="Job role" error={fieldErrors.jobRole}>
               <input
                 value={form.jobRole}
@@ -144,11 +213,94 @@ export default function DashboardPage() {
 
       {analysis && (
         <section className="analysis-result">
-          <AnalysisReport analysis={analysis} jobRole={form.jobRole} />
+          <AnalysisReport analysis={analysis} jobRole={analysis.jobRole} />
+          {usage && <UsageSummary usage={usage} />}
         </section>
       )}
+
+      <section className="history-section panel">
+        <div className="form-heading">
+          <div>
+            <p className="eyebrow">SAVED ANALYSES</p>
+            <h2>Find candidate results</h2>
+          </div>
+          <span className="muted">{historyTotal} total</span>
+        </div>
+        <form
+          className="history-filters"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void loadHistory(1, filters);
+          }}
+        >
+          <input aria-label="Filter by candidate name" placeholder="Candidate name" value={filters.candidateName} onChange={(event) => setFilters({ ...filters, candidateName: event.target.value })} />
+          <input aria-label="Filter by candidate email" placeholder="Candidate email" type="email" value={filters.candidateEmail} onChange={(event) => setFilters({ ...filters, candidateEmail: event.target.value })} />
+          <input aria-label="Filter by role" placeholder="Job role" value={filters.jobRole} onChange={(event) => setFilters({ ...filters, jobRole: event.target.value })} />
+          <input aria-label="Minimum score" placeholder="Min score" type="number" min="0" max="100" value={filters.minScore} onChange={(event) => setFilters({ ...filters, minScore: event.target.value })} />
+          <input aria-label="Maximum score" placeholder="Max score" type="number" min="0" max="100" value={filters.maxScore} onChange={(event) => setFilters({ ...filters, maxScore: event.target.value })} />
+          <input aria-label="Created from" title="Created from" type="date" value={filters.from} onChange={(event) => setFilters({ ...filters, from: event.target.value })} />
+          <input aria-label="Created to" title="Created to" type="date" value={filters.to} onChange={(event) => setFilters({ ...filters, to: event.target.value })} />
+          <button className="button button-primary" type="submit" disabled={historyLoading}>Search</button>
+        </form>
+        {historyError && <div className="alert alert-error" role="alert">{historyError}</div>}
+        {historyLoading ? (
+          <p className="muted">Loading saved analyses…</p>
+        ) : history.length ? (
+          <>
+            <div className="saved-analysis-list">
+              {history.map((item) => (
+                <button
+                  className="saved-analysis-row"
+                  key={item._id}
+                  type="button"
+                  onClick={() => {
+                    setAnalysis(item);
+                    setUsage(null);
+                  }}
+                >
+                  <span><strong>{item.candidateName}</strong><small>{item.candidateEmail}</small></span>
+                  <span><strong>{item.jobRole}</strong><small>{new Date(item.createdAt).toLocaleDateString()}</small></span>
+                  <span className="saved-score">{item.matchScore}%</span>
+                </button>
+              ))}
+            </div>
+            <div className="pagination">
+              <button className="button button-secondary" type="button" disabled={historyPage <= 1} onClick={() => void loadHistory(historyPage - 1)}>Previous</button>
+              <span>Page {historyPage} of {Math.max(1, historyPages)}</span>
+              <button className="button button-secondary" type="button" disabled={historyPage >= historyPages} onClick={() => void loadHistory(historyPage + 1)}>Next</button>
+            </div>
+          </>
+        ) : (
+          <p className="muted">No saved analyses match these filters.</p>
+        )}
+      </section>
     </>
   );
+}
+
+function UsageSummary({ usage }: { usage: AnalysisUsage }) {
+  return (
+    <details className="usage-card" open>
+      <summary><span><strong>AI usage details</strong><small>Token use for this analysis and shared Groq organization quota</small></span><span>⌄</span></summary>
+      <div className="usage-content">
+        <p className="usage-note">Tokens consumed for this analysis are separate from the shared provider quota.</p>
+        <div className="usage-grid">
+          <UsageValue label="Tokens used" value={usage.tokensUsed.total} />
+          <UsageValue label="Tokens remaining (organization)" value={usage.organizationQuota.tokensRemaining} />
+          <UsageValue label="Request limit" value={usage.organizationQuota.requestLimit} />
+          <UsageValue label="Requests remaining" value={usage.organizationQuota.requestsRemaining} />
+          <UsageValue label="Request reset" value={usage.organizationQuota.requestsReset} />
+          <UsageValue label="Token reset" value={usage.organizationQuota.tokensReset} />
+          <UsageValue label="Provider retry-after (seconds)" value={usage.retryAfterMs === null ? null : Math.ceil(usage.retryAfterMs / 1000)} />
+        </div>
+        <p className="usage-note">{usage.retryStatus}</p>
+      </div>
+    </details>
+  );
+}
+
+function UsageValue({ label, value }: { label: string; value: string | number | null }) {
+  return <div className="usage-value"><span>{label}</span><strong>{value ?? "Not provided"}</strong></div>;
 }
 
 function Field({

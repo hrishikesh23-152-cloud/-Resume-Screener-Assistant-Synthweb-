@@ -1,5 +1,6 @@
 import type { ErrorRequestHandler } from "express";
 import { ZodError } from "zod";
+import mongoose from "mongoose";
 import { AppError } from "../errors/AppError.js";
 
 export const errorHandler: ErrorRequestHandler = (error: unknown, _request, response, _next) => {
@@ -20,6 +21,26 @@ export const errorHandler: ErrorRequestHandler = (error: unknown, _request, resp
         })),
       },
     });
+    return;
+  }
+
+  if (error instanceof mongoose.Error.ValidationError || error instanceof mongoose.Error.CastError) {
+    response.status(400).json({ error: { message: "Analysis data is invalid." } });
+    return;
+  }
+
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "name" in error &&
+    (error.name === "MongoServerSelectionError" || error.name === "MongoNetworkError")
+  ) {
+    response.status(503).json({ error: { message: "Database is temporarily unavailable." } });
+    return;
+  }
+
+  if (typeof error === "object" && error !== null && "code" in error && error.code === 11000) {
+    response.status(409).json({ error: { message: "A conflicting record already exists." } });
     return;
   }
 
