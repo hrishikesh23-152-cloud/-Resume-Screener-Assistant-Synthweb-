@@ -4,11 +4,11 @@ export default function AppLayout() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <NavLink className="brand" to="/" aria-label="PairUp home">
-          <span className="brand-mark">P</span>
-          <span>PairUp</span>
+        <NavLink className="brand" to="/" aria-label="Resume screener home">
+          <span className="brand-mark">RS</span>
+          <span>Resume screener</span>
           <span className="brand-divider">/</span>
-          <span className="brand-caption">Resume screener</span>
+          <span className="brand-caption">AI-powered candidate evaluation</span>
         </NavLink>
         <nav className="main-nav" aria-label="Main navigation">
           <NavLink to="/" end className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
