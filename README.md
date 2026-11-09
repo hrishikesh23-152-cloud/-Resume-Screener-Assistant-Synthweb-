@@ -1,51 +1,146 @@
 # Resume Screener Assistant
 
-A small TypeScript React and Express application that accepts candidate name/email, a job role and description, and a PDF resume. It extracts selectable text, returns a structured report from Groq, and saves the candidate and validated report in MongoDB for later search. HR authentication is not included.
+An AI-powered resume screening application built with **React, TypeScript, Node.js, Express, MongoDB, and Groq**.
 
-The report contains a 0–100 match score, five matching skills, three skill gaps, and three interview questions. Treat it as an aid for human review, not an automated hiring decision.
+Upload a candidate's PDF resume, provide job details, and receive a structured AI-generated evaluation to assist HR teams with candidate review.
 
-## Run locally
+## Live Demo
 
-Requirements: Node.js 22+, npm, MongoDB, and a Groq API key.
+- **Frontend:** https://resume-screener-bu8t.onrender.com
+- **Backend:** https://resume-screener-synth.onrender.com
+- **API Health:** https://resume-screener-synth.onrender.com/api/health
 
-1. Copy `.env.example` to `.env`; configure `MONGODB_URI` and set `GROQ_API_KEY`.
-2. Install and start the application:
+## Features
 
-   ```powershell
-   npm install
-   npm run dev
-   ```
+- PDF resume upload and text extraction.
+- AI-powered resume and job description comparison.
+- Match score (0–100).
+- Five matching skills and three skill gaps.
+- Three AI-generated interview questions.
+- Structured LLM responses validated using Zod.
+- Candidate analysis history stored in MongoDB.
+- Search and filter previous analyses.
+- Input validation, rate limiting, Helmet, and CORS protection.
 
-3. Open `http://localhost:5173`. The Vite client sends requests to `http://localhost:4000/api`.
+## Tech Stack
 
-## Configuration
+| Category | Technologies |
+|---|---|
+| Frontend | React, TypeScript, Vite |
+| Backend | Node.js, Express, TypeScript |
+| Database | MongoDB, Mongoose |
+| AI | Groq SDK |
+| Validation | Zod |
+| PDF Processing | pdf-parse |
+| Security | Helmet, CORS, Express Rate Limit |
 
-| Variable | Purpose | Default |
+## Project Structure
+
+```text
+resume-screener/
+├── client/          # React frontend
+├── server/          # Express backend
+├── .agents/         # Agent instructions
+├── node_modules/
+├── package.json
+├── package-lock.json
+├── AGENTS.md
+└── AI_USAGE.md
+```
+
+## Getting Started
+
+**Requirements:** Node.js 22+, npm, MongoDB, and a Groq API key.
+
+1. Clone the repository:
+
+```bash
+git clone <your-repository-url>
+cd resume-screener
+```
+
+2. Create your environment file:
+
+```bash
+cp .env.example .env
+```
+
+3. Configure your environment variables:
+
+```env
+PORT=4000
+NODE_ENV=development
+MONGODB_URI=mongodb://127.0.0.1:27017/resume_screener
+GROQ_API_KEY=your_groq_api_key
+GROQ_MODEL=openai/gpt-oss-120b
+CLIENT_URL=http://localhost:5173
+```
+
+4. Install dependencies and start both applications:
+
+```bash
+npm install
+npm run dev
+```
+
+5. Open the application:
+
+```text
+http://localhost:5173
+```
+
+## API Endpoints
+
+| Method | Endpoint | Description |
 |---|---|---|
-| `PORT` | API listener port | `4000` |
-| `NODE_ENV` | Runtime environment | `development` |
-| `MONGODB_URI` | MongoDB connection string | `mongodb://127.0.0.1:27017/resume_screener` |
-| `GROQ_API_KEY` | Backend-only Groq credential | Required |
-| `GROQ_MODEL` | Groq chat model | `openai/gpt-oss-120b` |
-| `CLIENT_URL` | Explicit browser origin allowlist | `http://localhost:5173` |
-| `VITE_API_URL` | Optional client API base URL | Dev: `http://localhost:4000/api`; production: same-origin `/api` |
+| GET | `/api/health` | Backend health check |
+| POST | `/api/analysis` | Analyze a resume |
+| GET | `/api/analysis` | Search analysis history |
+| GET | `/api/analysis/:id` | Retrieve an analysis |
 
-Never put `GROQ_API_KEY` in a `VITE_` variable. Set `CLIENT_URL` to the exact origin hosting the client.
+## Deployment
 
-## API
+The application is deployed on **Render** using separate frontend and backend services.
 
-- `POST /api/analysis` — multipart fields `candidateName`, `candidateEmail`, `jobRole`, `jobDescription`, and one `resumeFile` PDF (300 KB maximum).
-- `GET /api/analysis` — search history with optional `candidateName`, `candidateEmail`, `jobRole`, `minScore`, `maxScore`, `from`, `to`, `page`, and `limit` query parameters.
-- `GET /api/analysis/:id` — retrieve an individual saved analysis.
-- `GET /api/health` — health check.
+Configure the following backend environment variables:
 
-The PDF is held in memory only for the request, must contain selectable text, and is limited to 20 pages and 30,000 extracted characters. Scanned image-only PDFs are not OCR'd. Resume content is not persisted; the single `Analysis` collection stores candidate name/email, role, job description, validated report, and timestamps. Candidate email is normalized to lowercase and is not unique.
+- `MONGODB_URI`
+- `GROQ_API_KEY`
+- `GROQ_MODEL`
+- `CLIENT_URL`
+- `NODE_ENV`
 
-## Checks
+Set `CLIENT_URL` to the frontend's actual origin.
 
-```powershell
+The frontend uses the backend API URL:
+
+```text
+https://resume-screener-synth.onrender.com/api
+```
+
+Never expose backend secrets in frontend environment variables.
+
+## Validation and Testing
+
+Run TypeScript checks:
+
+```bash
 npm run typecheck
+```
+
+Build both applications:
+
+```bash
 npm run build
 ```
 
-Helmet, an explicit CORS allowlist, rate limiting, backend Zod validation, PDF signature checking, and bounded upload size are enabled. Resume and job description text are untrusted model input; the API validates the exact output shape and never executes model output. Search and filtering are performed by MongoDB, not in the browser.
+## Limitations
+
+- Only PDF files containing selectable text are supported.
+- Maximum PDF size: 300 KB.
+- Maximum document length: 20 pages and 30,000 extracted characters.
+- Scanned image-only PDFs are not supported.
+- Resume files are processed in memory and are not permanently stored.
+- Candidate details and validated analysis reports are stored in MongoDB.
+
+**Disclaimer:** AI-generated evaluations are intended to assist human reviewers. They should not be used as the sole basis for hiring decisions.
