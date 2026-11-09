@@ -12,10 +12,8 @@ const resumeUpload = multer({
   },
   fileFilter(_request, file, callback) {
     const name = file.originalname.toLowerCase();
-    const isText = name.endsWith(".txt") && file.mimetype === "text/plain";
-    const isPdf = name.endsWith(".pdf") && file.mimetype === "application/pdf";
-    if (!isText && !isPdf) {
-      callback(new AppError("Upload a plain-text .txt or PDF resume file.", 415));
+    if (!name.endsWith(".txt") && !name.endsWith(".pdf")) {
+      callback(new AppError("Upload a .txt or PDF resume file.", 415));
       return;
     }
     callback(null, true);

@@ -5,7 +5,8 @@ import { MAX_RESUME_LENGTH } from "../schemas/analysis.js";
 const MAX_PDF_PAGES = 20;
 
 export async function extractResumeText(file: Express.Multer.File): Promise<string> {
-  if (file.mimetype === "text/plain" && file.originalname.toLowerCase().endsWith(".txt")) {
+  const filename = file.originalname.toLowerCase();
+  if (filename.endsWith(".txt")) {
     try {
       return validateExtractedText(new TextDecoder("utf-8", { fatal: true }).decode(file.buffer));
     } catch (error) {
@@ -15,8 +16,7 @@ export async function extractResumeText(file: Express.Multer.File): Promise<stri
   }
 
   if (
-    file.mimetype !== "application/pdf" ||
-    !file.originalname.toLowerCase().endsWith(".pdf") ||
+    !filename.endsWith(".pdf") ||
     !file.buffer.subarray(0, 5).equals(Buffer.from("%PDF-"))
   ) {
     throw new AppError("Upload a valid .txt or PDF resume file.", 415);
