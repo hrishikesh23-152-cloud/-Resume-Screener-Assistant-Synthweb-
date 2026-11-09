@@ -1,16 +1,20 @@
 import MatchScore from "./MatchScore.js";
-import type { Analysis } from "../services/api.js";
+import type { AnalysisResult } from "../services/api.js";
 
-export default function AnalysisReport({ analysis }: { analysis: Analysis }) {
+export default function AnalysisReport({
+  analysis,
+  jobRole,
+}: {
+  analysis: AnalysisResult;
+  jobRole: string;
+}) {
   return (
     <div className="report-stack">
       <section className="result-hero panel">
         <div>
           <p className="eyebrow">ANALYSIS REPORT</p>
-          <h2>{analysis.candidateName}</h2>
-          <p className="muted">
-            {analysis.jobRole} <span className="separator">·</span> {analysis.candidateEmail}
-          </p>
+          <h2>{jobRole} match results</h2>
+          <p className="muted">Based on the uploaded resume and job description.</p>
         </div>
         <MatchScore score={analysis.matchScore} />
       </section>
@@ -60,13 +64,6 @@ export default function AnalysisReport({ analysis }: { analysis: Analysis }) {
           ))}
         </ol>
       </section>
-
-      {analysis.jobDescription && (
-        <details className="panel source-details">
-          <summary>View job description used</summary>
-          <p>{analysis.jobDescription}</p>
-        </details>
-      )}
     </div>
   );
 }

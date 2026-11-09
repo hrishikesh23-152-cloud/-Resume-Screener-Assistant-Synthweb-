@@ -2,13 +2,13 @@
 
 ## Purpose
 
-Groq is used only to compare resume evidence with the job description supplied for one analysis and to return a structured report. The evaluation is an HR aid, not an automatic hiring recommendation or a substitute for human review.
+Groq compares the supplied resume evidence with the job description and returns a structured report. The evaluation is an HR aid, not an automatic hiring recommendation or substitute for human review.
 
 ## Evaluation and output
 
-The model is instructed to assess role-related evidence using fixed weighted criteria: required skills (40%), relevant experience (30%), job-specific qualifications (15%), and demonstrated capabilities (15%). The report contains a 0–100 score, five matching skills, three gaps or missing-evidence areas, and three interview questions. Missing evidence is not treated as proof that a candidate lacks a skill. Protected characteristics and candidate name/email are not scoring evidence.
+The model considers role-related evidence, required skills, relevant experience, job-specific qualifications, and demonstrated capabilities. The report contains a 0–100 score, five matching skills, three skill gaps or missing-evidence areas, and three interview questions. Missing evidence is not proof that a candidate lacks a skill.
 
-The backend requests JSON mode, parses the response, validates its exact shape with Zod, and permits one controlled regeneration when the response is malformed. Invalid output is neither returned nor saved. The model has no tools, and generated text is never executed.
+The backend requests JSON mode, parses the response, and validates its exact shape with Zod. Invalid output is not returned. The model has no tools, and generated text is never executed.
 
 ## Prompt-injection safeguards
 
@@ -16,10 +16,10 @@ System instructions are separate from the JSON-serialized job description and re
 
 ## Data handling
 
-Candidate name, email, job role, job description, and extracted resume text are sent to the configured Groq API for the requested analysis. Plain-text and PDF files are held in memory; PDF text extraction is performed by the server, with uploads limited to 60 KB and 20 PDF pages. Resume text is not saved in MongoDB or logged by this application. The single `Analysis` collection stores the candidate name/email, job role and description, validated result, and timestamps. Configure Groq and MongoDB according to your organization's privacy, retention, and candidate-notice policies.
+The job role, job description, and extracted resume text are sent to the configured Groq API for the requested analysis. PDF files are held in memory; uploads are limited to 300 KB and 20 pages. Resume text is not saved or logged, and this first version has no analysis history or database.
 
-Do not submit information that you are not authorized to process. This application does not implement HR authentication, a retention scheduler, or candidate deletion workflows; restrict deployment access and establish an appropriate retention process for saved analyses.
+Do not submit information that you are not authorized to process. This application does not implement HR authentication; restrict deployment access appropriately.
 
 ## Usage and quota
 
-The API returns token counts for the current model analysis separately from rate-limit quota reported by Groq. Remaining quota may be shared across the Groq organization and must not be presented as an individual HR allowance. Provider response headers are normalized before they are returned to the browser. Network/server/rate-limit failures have at most two retries; malformed output has at most one regeneration attempt.
+This first version does not expose token counts or provider quota headers to the browser. Configure and monitor Groq usage in the provider account.

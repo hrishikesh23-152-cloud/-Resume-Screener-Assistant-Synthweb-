@@ -7,10 +7,9 @@ import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import { AppError } from "./errors/AppError.js";
 import { errorHandler } from "./middleware/errorHandler.js";
-import { createAnalysisWorkflow, type AnalysisWorkflow } from "./services/analysisWorkflow.js";
 import { createAnalysisRouter } from "./routes/analysisRoutes.js";
 
-export function createApp(workflow: AnalysisWorkflow = createAnalysisWorkflow()) {
+export function createApp() {
   const app = express();
   const allowedOrigins = (process.env.CLIENT_URL ?? "http://localhost:5173")
     .split(",")
@@ -44,7 +43,7 @@ export function createApp(workflow: AnalysisWorkflow = createAnalysisWorkflow())
     }),
   );
   app.get("/api/health", (_request, response) => response.json({ status: "ok" }));
-  app.use("/api/analysis", createAnalysisRouter(workflow));
+  app.use("/api/analysis", createAnalysisRouter());
   app.use("/api", (_request, response) => response.status(404).json({ error: { message: "Not found" } }));
   const defaultWebDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "../../client/dist");
   const webDirectory = resolve(process.env.WEB_DIST_DIR ?? defaultWebDirectory);
