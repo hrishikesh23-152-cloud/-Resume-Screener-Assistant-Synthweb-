@@ -1,5 +1,8 @@
 import cors from "cors";
 import express from "express";
+import { existsSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import { AppError } from "./errors/AppError.js";
@@ -30,7 +33,7 @@ export function createApp(workflow: AnalysisWorkflow = createAnalysisWorkflow())
       credentials: false,
     }),
   );
-  app.use(express.json({ limit: "64kb" }));
+  app.use(express.json({ limit: "350kb" }));
   app.use(
     "/api",
     rateLimit({
@@ -42,6 +45,13 @@ export function createApp(workflow: AnalysisWorkflow = createAnalysisWorkflow())
   );
   app.get("/api/health", (_request, response) => response.json({ status: "ok" }));
   app.use("/api/analysis", createAnalysisRouter(workflow));
+  app.use("/api", (_request, response) => response.status(404).json({ error: { message: "Not found" } }));
+  const defaultWebDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "../../client/dist");
+  const webDirectory = resolve(process.env.WEB_DIST_DIR ?? defaultWebDirectory);
+  if (existsSync(webDirectory)) {
+    app.use(express.static(webDirectory));
+    app.get("*", (_request, response) => response.sendFile(resolve(webDirectory, "index.html")));
+  }
   app.use((_request, response) => response.status(404).json({ error: { message: "Not found" } }));
   app.use(errorHandler);
   return app;

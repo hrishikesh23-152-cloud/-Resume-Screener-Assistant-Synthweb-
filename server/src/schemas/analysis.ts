@@ -3,24 +3,27 @@ import { z } from "zod";
 export const MAX_JOB_DESCRIPTION_LENGTH = 20_000;
 export const MAX_RESUME_LENGTH = 30_000;
 
-const requiredText = (label: string, maximum: number) =>
+const requiredText = (label: string, minimum: number, maximum: number) =>
   z
     .string()
     .trim()
-    .min(1, `${label} is required`)
+    .min(minimum, `${label} is too short`)
     .max(maximum, `${label} must be ${maximum.toLocaleString()} characters or fewer`);
 
-export const analysisInputSchema = z
+export const analysisFieldsSchema = z
   .object({
-    candidateName: requiredText("Candidate name", 120),
-    candidateEmail: requiredText("Candidate email", 254)
+    candidateName: requiredText("Candidate name", 2, 120),
+    candidateEmail: requiredText("Candidate email", 1, 254)
       .email("Enter a valid email address")
       .transform((email) => email.toLowerCase()),
-    jobRole: requiredText("Job role", 120),
-    jobDescription: requiredText("Job description", MAX_JOB_DESCRIPTION_LENGTH),
-    resumeText: requiredText("Resume", MAX_RESUME_LENGTH),
+    jobRole: requiredText("Job role", 2, 120),
+    jobDescription: requiredText("Job description", 20, MAX_JOB_DESCRIPTION_LENGTH),
   })
   .strict();
+
+export const analysisInputSchema = analysisFieldsSchema.extend({
+  resumeText: requiredText("Resume", 20, MAX_RESUME_LENGTH),
+});
 
 const nonEmptyString = z.string().trim().min(1);
 
@@ -43,10 +46,17 @@ const optionalTrimmedText = (maximum: number) =>
     z.string().max(maximum).optional(),
   );
 
-const optionalDate = z.preprocess(
-  (value) => (value === "" || value === undefined ? undefined : value),
-  z.coerce.date().optional(),
-);
+const optionalDate = (inclusiveEnd = false) =>
+  z.preprocess(
+    (value) => {
+      if (value === "" || value === undefined) return undefined;
+      if (inclusiveEnd && typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        return `${value}T23:59:59.999Z`;
+      }
+      return value;
+    },
+    z.coerce.date().optional(),
+  );
 
 export const analysisQuerySchema = z
   .object({
@@ -69,8 +79,8 @@ export const analysisQuerySchema = z
       (value) => (value === "" || value === undefined ? undefined : value),
       z.coerce.number().int().min(0).max(100).optional(),
     ),
-    from: optionalDate,
-    to: optionalDate,
+    from: optionalDate(),
+    to: optionalDate(true),
     page: z.preprocess(
       (value) => (value === "" || value === undefined ? undefined : value),
       z.coerce.number().int().min(1).default(1),
@@ -99,5 +109,6 @@ export const analysisQuerySchema = z
   });
 
 export type AnalysisInput = z.infer<typeof analysisInputSchema>;
+export type AnalysisFields = z.infer<typeof analysisFieldsSchema>;
 export type AnalysisResult = z.infer<typeof analysisResultSchema>;
 export type AnalysisQuery = z.infer<typeof analysisQuerySchema>;

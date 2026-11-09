@@ -6,7 +6,17 @@ const envSchema = z.object({
   MONGODB_URI: z.string().min(1, "MONGODB_URI is required"),
   GROQ_API_KEY: z.string().min(1, "GROQ_API_KEY is required"),
   GROQ_MODEL: z.string().min(1).default("llama-3.3-70b-versatile"),
-  CLIENT_URL: z.string().url().default("http://localhost:5173"),
+  CLIENT_URL: z
+    .string()
+    .min(1)
+    .refine(
+      (origins) =>
+        origins
+          .split(",")
+          .every((origin) => origin.trim() !== "*" && z.string().url().safeParse(origin.trim()).success),
+      "CLIENT_URL must contain explicit, valid origins",
+    )
+    .default("http://localhost:5173"),
 });
 
 export type AppConfig = z.infer<typeof envSchema>;
