@@ -14,9 +14,19 @@ export const analysisFormSchema = z
       .transform((email) => email.toLowerCase()),
     jobRole: requiredText("Job role", 2, 120),
     jobDescription: requiredText("Job description", 20, MAX_JOB_DESCRIPTION_LENGTH),
-    resumeText: requiredText("Resume", 20, MAX_RESUME_LENGTH),
+    resumeText: z.string().max(MAX_RESUME_LENGTH, "Resume is too long").default(""),
+    resumeFile: z.custom<File>((value) => typeof File !== "undefined" && value instanceof File).optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((form, context) => {
+    if (!form.resumeFile && form.resumeText.trim().length < 20) {
+      context.addIssue({
+        code: "custom",
+        message: "Add at least 20 characters of resume text or upload a file",
+        path: ["resumeText"],
+      });
+    }
+  });
 
 export type AnalysisFormInput = z.input<typeof analysisFormSchema>;
 export type AnalysisFormValues = z.output<typeof analysisFormSchema>;

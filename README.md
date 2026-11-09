@@ -11,7 +11,7 @@ A lightweight HR workspace for comparing a candidate's resume with a job descrip
 - Saves one `Analysis` record per evaluation, without retaining resume text.
 - Searches and filters history by candidate, email, role, score range, date, and page.
 - Displays per-analysis token usage separately from shared Groq organization quota.
-- Accepts pasted resume text or a plain-text `.txt` upload through Multer (up to 60 KB; 30,000 characters maximum). Other file formats are intentionally not parsed.
+- Accepts pasted resume text or `.txt`/PDF resume uploads through Multer (up to 60 KB; 30,000 extracted characters maximum). PDFs are limited to 20 pages and must contain selectable text; scanned image-only PDFs are not OCR'd.
 
 The score is an assistive signal, not a hiring decision. HR should verify evidence and apply consistent, job-related judgment.
 
@@ -46,7 +46,7 @@ Never put `GROQ_API_KEY` in a `VITE_` variable. In a single-origin deployment th
 
 ## API
 
-- `POST /api/analysis` — multipart form fields `candidateName`, `candidateEmail`, `jobRole`, `jobDescription`, and one `resumeFile` (`.txt`, `text/plain`, maximum 60 KB). The API validates the uploaded UTF-8 text, runs Groq, validates the output, persists the analysis, and returns it with sanitized usage.
+- `POST /api/analysis` — multipart form fields `candidateName`, `candidateEmail`, `jobRole`, `jobDescription`, and one `resumeFile` (`.txt` or `.pdf`, maximum 60 KB). The API validates/extracts UTF-8 or PDF text, runs Groq, validates the output, persists the analysis, and returns it with sanitized usage.
 - `GET /api/analysis` — filtered, newest-first history. Query parameters: `candidateName`, `candidateEmail`, `jobRole`, `minScore`, `maxScore`, `from`, `to`, `page`, `limit`.
 - `GET /api/analysis/:id` — retrieve one analysis.
 - `GET /api/health` — health check.

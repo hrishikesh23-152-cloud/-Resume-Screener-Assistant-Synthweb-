@@ -16,7 +16,7 @@ System instructions are separate from the JSON-serialized job description and re
 
 ## Data handling
 
-Candidate name, email, job role, job description, and resume text are sent to the configured Groq API for the requested analysis. Resume text is validated and processed in memory but is not saved in MongoDB or logged by this application. The single `Analysis` collection stores the candidate name/email, job role and description, validated result, and timestamps. Configure Groq and MongoDB according to your organization's privacy, retention, and candidate-notice policies.
+Candidate name, email, job role, job description, and extracted resume text are sent to the configured Groq API for the requested analysis. Plain-text and PDF files are held in memory; PDF text extraction is performed by the server, with uploads limited to 60 KB and 20 PDF pages. Resume text is not saved in MongoDB or logged by this application. The single `Analysis` collection stores the candidate name/email, job role and description, validated result, and timestamps. Configure Groq and MongoDB according to your organization's privacy, retention, and candidate-notice policies.
 
 Do not submit information that you are not authorized to process. This application does not implement HR authentication, a retention scheduler, or candidate deletion workflows; restrict deployment access and establish an appropriate retention process for saved analyses.
 

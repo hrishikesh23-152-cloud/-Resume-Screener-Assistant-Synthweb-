@@ -10,7 +10,7 @@ import { validate } from "../middleware/validate.js";
 import { uploadResumeFile } from "../middleware/uploadResume.js";
 import type { AnalysisWorkflow } from "../services/analysisWorkflow.js";
 import { AppError } from "../errors/AppError.js";
-import { TextDecoder } from "node:util";
+import { extractResumeText } from "../services/resumeTextExtractor.js";
 
 const asyncHandler = (handler: RequestHandler): RequestHandler => (request, response, next) => {
   Promise.resolve(handler(request, response, next)).catch(next);
@@ -23,17 +23,10 @@ export function createAnalysisRouter(workflow: AnalysisWorkflow): Router {
     "/",
     uploadResumeFile,
     validate("body", analysisFieldsSchema),
-    asyncHandler(async (_request, response) => {
-      const request = response.req;
+    asyncHandler(async (request, response) => {
       const file = request.file;
-      if (!file) throw new AppError("A plain-text resume file is required.", 400);
-
-      let resumeText: string;
-      try {
-        resumeText = new TextDecoder("utf-8", { fatal: true }).decode(file.buffer);
-      } catch {
-        throw new AppError("Resume file must contain valid UTF-8 text.", 400);
-      }
+      if (!file) throw new AppError("A .txt or PDF resume file is required.", 400);
+      const resumeText = await extractResumeText(file);
 
       const body = analysisInputSchema.parse({
         ...(response.locals.body as ReturnType<typeof analysisFieldsSchema.parse>),

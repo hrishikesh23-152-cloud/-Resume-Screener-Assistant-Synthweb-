@@ -28,7 +28,10 @@ export default function DashboardPage() {
     event.preventDefault();
     if (loading) return;
     setError("");
-    const parsed = analysisFormSchema.safeParse(form);
+    const parsed = analysisFormSchema.safeParse({
+      ...form,
+      resumeFile: resumeFile ?? undefined,
+    });
     if (!parsed.success) {
       setFieldErrors(
         Object.fromEntries(
@@ -59,12 +62,31 @@ export default function DashboardPage() {
   async function onFileSelected(event: ChangeEvent<HTMLInputElement>) {
     const file = event.currentTarget.files?.[0];
     if (!file) return;
-    if (!file.name.toLowerCase().endsWith(".txt") || file.size > 60_000) {
-      setError("Choose a plain-text .txt resume file no larger than 60 KB.");
+    const name = file.name.toLowerCase();
+    const isPdf = name.endsWith(".pdf");
+    const isText = name.endsWith(".txt");
+    if ((!isPdf && !isText) || file.size > 60 * 1024) {
+      setError("Choose a .txt or PDF resume file no larger than 60 KB.");
+      setResumeFile(null);
       event.currentTarget.value = "";
       return;
     }
     try {
+      if (isPdf) {
+        const header = new Uint8Array(await file.slice(0, 5).arrayBuffer());
+        if (new TextDecoder().decode(header) !== "%PDF-") {
+          setError("This file does not appear to be a valid PDF.");
+          setResumeFile(null);
+          event.currentTarget.value = "";
+          return;
+        }
+        setForm((current) => ({ ...current, resumeText: "" }));
+        setResumeFile(file);
+        event.currentTarget.value = "";
+        setError("");
+        return;
+      }
+
       const text = await file.text();
       if (text.length > MAX_RESUME_LENGTH) {
         setError("This resume is too long. Keep it under 30,000 characters.");
@@ -78,9 +100,12 @@ export default function DashboardPage() {
       }
       updateField("resumeText", text);
       setResumeFile(file);
+      event.currentTarget.value = "";
       setError("");
     } catch {
-      setError("This file could not be read. Paste the resume text instead.");
+      setError("This file could not be read. Choose another file or paste the resume text.");
+      setResumeFile(null);
+      event.currentTarget.value = "";
     }
   }
 
@@ -97,7 +122,7 @@ export default function DashboardPage() {
           <p className="eyebrow">A SIMPLE WORKFLOW</p>
           <ol className="steps-list">
             <li><span>01</span><div><strong>Add role details</strong><small>Share the requirements that matter</small></div></li>
-            <li><span>02</span><div><strong>Include candidate experience</strong><small>Paste or upload a plain-text resume</small></div></li>
+            <li><span>02</span><div><strong>Include candidate experience</strong><small>Paste text or upload a TXT/PDF resume</small></div></li>
             <li><span>03</span><div><strong>Review the evidence</strong><small>Use the score as a starting point</small></div></li>
           </ol>
         </div>
@@ -153,7 +178,7 @@ export default function DashboardPage() {
             />
             <span className="character-count">{form.jobDescription.length.toLocaleString()} / 20,000</span>
           </Field>
-          <Field label="Resume content" hint="Plain-text only. The resume is not saved with the analysis." error={fieldErrors.resumeText}>
+          <Field label="Resume content" hint="Paste text or upload a TXT/PDF file. Resume content is not saved." error={fieldErrors.resumeText}>
             <textarea
               className="resume-input"
               value={form.resumeText}
@@ -168,10 +193,10 @@ export default function DashboardPage() {
             <span className="character-count">{form.resumeText.length.toLocaleString()} / 30,000</span>
           </Field>
           <label className="file-picker">
-            <input type="file" accept=".txt,text/plain" onChange={onFileSelected} />
+            <input type="file" accept=".txt,.pdf,text/plain,application/pdf" onChange={onFileSelected} />
             <span className="file-icon">↑</span>
             <span>
-              <strong>{resumeFile?.name ?? "Upload a .txt file"}</strong>
+              <strong>{resumeFile?.name ?? "Upload a .txt or PDF file"}</strong>
               <small>{resumeFile ? `${Math.ceil(resumeFile.size / 1024)} KB · Ready to upload` : "Maximum 60 KB"}</small>
             </span>
           </label>
