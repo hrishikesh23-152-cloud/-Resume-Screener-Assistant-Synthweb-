@@ -16,7 +16,7 @@ const envSchema = z.object({
           .every((origin) => origin.trim() !== "*" && z.string().url().safeParse(origin.trim()).success),
       "CLIENT_URL must contain explicit, valid origins",
     )
-    .default("http://localhost:5173"),
+    .default("https://resume-screener-synth.onrender.com"),
 });
 
 export type AppConfig = z.infer<typeof envSchema>;
