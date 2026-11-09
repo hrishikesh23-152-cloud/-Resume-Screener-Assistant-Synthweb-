@@ -35,7 +35,7 @@ export interface AnalysisHistory {
 }
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? "http://localhost:4000/api" : "/api"),
+  baseURL: import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? "https://resume-screener-bu8t.onrender.com/api" : "/api"),
   timeout: 210_000,
 });
 
