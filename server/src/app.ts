@@ -1,4 +1,3 @@
-
 import cors from "cors";
 import express from "express";
 import rateLimit from "express-rate-limit";
@@ -13,12 +12,14 @@ export function createApp() {
   app.disable("x-powered-by");
   app.use(helmet());
 
+  const allowedOrigins = [
+    "http://localhost:5173",
+    process.env.CLIENT_URL,
+  ].filter(Boolean) as string[];
+
   app.use(
     cors({
-      origin: [
-        "http://localhost:5173",
-        "https://your-frontend.onrender.com",
-      ],
+      origin: allowedOrigins,
     })
   );
 
